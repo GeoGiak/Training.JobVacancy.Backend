@@ -39,4 +39,9 @@ app.MapEndpoints();
 
 app.UseCorrelationIdMiddleware();
 
+app.MapGet("user-only", () => "User only").RequireAuthorization("User");
+
+app.MapGet("admin-only", () => "Admin only").RequireAuthorization("Admin");
+
 app.Run();
+
