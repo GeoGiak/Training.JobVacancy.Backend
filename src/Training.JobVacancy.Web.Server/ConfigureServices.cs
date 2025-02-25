@@ -1,13 +1,17 @@
 ﻿namespace Adaptit.Training.JobVacancy.Web.Server;
 
+using Adaptit.Training.JobVacancy.Backend.Helpers;
 using Adaptit.Training.JobVacancy.Data;
 using Adaptit.Training.JobVacancy.Web.Models;
+using Adaptit.Training.JobVacancy.Web.Server.Helpers;
+using Adaptit.Training.JobVacancy.Web.Server.Middlewares;
+using Adaptit.Training.JobVacancy.Web.Server.OpenApi.OperationTransformers;
+using Adaptit.Training.JobVacancy.Web.Server.OpenApi.SchemaTransformers;
 using Adaptit.Training.JobVacancy.Web.Server.Options;
 using Adaptit.Training.JobVacancy.Web.Server.Repositories;
 
 using Asp.Versioning;
 
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -28,8 +32,7 @@ public static class ConfigureServices
     builder.AddApiVersioning();
 
     builder.Services.AddDbContext<JobVacancyDbContext>(options => options
-        .UseNpgsql(builder.Configuration.GetConnectionString("JobVacancyDatabase"), options =>
-          options.MigrationsAssembly("Training.JobVacancy.Web.Server"))
+        .UseNpgsql(builder.Configuration.GetConnectionString("JobVacancyDatabase"))
         .EnableSensitiveDataLogging());
   }
 
@@ -40,7 +43,7 @@ public static class ConfigureServices
         .ValidateDataAnnotations();
 
     builder.Services.AddAuthentication()
-        .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme,
+        .AddJwtBearer("openid",
             options =>
             {
               var realmSettings = new JobVacancyAuthenticationOptions();
@@ -62,9 +65,35 @@ public static class ConfigureServices
                 ValidateLifetime = true,
               };
             });
+
+    builder.Services.AddAuthorizationBuilder()
+        .AddDefaultPolicy("default",
+            policy => policy
+                .AddAuthenticationSchemes("openid")
+                .RequireAuthenticatedUser());
   }
 
-  public static void AddApiDocumentation(this WebApplicationBuilder builder) => builder.Services.AddOpenApi();
+  public static void AddApiDocumentation(this WebApplicationBuilder builder)
+  {
+    builder.Services.AddOpenApi("v1",
+        options =>
+        {
+          options.AddDocumentTransformer<ApiVersionDocumentTransformer>();
+          options.AddDocumentTransformer<SecuritySchemeTransformer>();
+          options.AddOperationTransformer<DeprecatedVersionTransformer>();
+          options.AddOperationTransformer<AuthorizationCheckOperationTransformer>();
+          options.AddSchemaTransformer<NullableSchemaTransformer>();
+        });
+    builder.Services.AddOpenApi("v2",
+        options =>
+        {
+          options.AddDocumentTransformer<ApiVersionDocumentTransformer>();
+          options.AddDocumentTransformer<SecuritySchemeTransformer>();
+          options.AddOperationTransformer<DeprecatedVersionTransformer>();
+          options.AddOperationTransformer<AuthorizationCheckOperationTransformer>();
+          options.AddSchemaTransformer<NullableSchemaTransformer>();
+        });
+  }
 
   public static void AddApiVersioning(this WebApplicationBuilder builder)
   {
@@ -74,6 +103,15 @@ public static class ConfigureServices
           options.ReportApiVersions = true;
           options.AssumeDefaultVersionWhenUnspecified = true;
           options.ApiVersionReader = new UrlSegmentApiVersionReader();
+          options.RouteConstraintName = "apiVersion";
+
+          options.Policies
+              .Sunset(1)
+              .Effective(2025, 02, 15)
+              .Link("api-policy.html")
+              .Title("Versioning Policy")
+              .Type("text/html")
+              .Language("en");
         })
         .AddApiExplorer(options =>
         {
@@ -110,4 +148,6 @@ public static class ConfigureServices
       return new NavJobVacancyRepo(seed);
     });
   }
+
+  public static void AddMiddlewareServices(this WebApplicationBuilder builder) => builder.Services.AddTransient<CorrelationIdMiddleware>();
 }
