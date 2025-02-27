@@ -1,7 +1,6 @@
 <Project>
 
   <PropertyGroup>
-    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
     <NoLogo>true</NoLogo>
     <RootNamespace>Adaptit.$(MSBuildProjectName)</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -82,6 +81,13 @@
     </AssemblyAttribute>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="GitVersion.MsBuild">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <PropertyGroup Label="Package">
     <PackageId>$(RootNamespace)</PackageId>
     <Company>Adaptit</Company>
@@ -91,7 +97,6 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageOutputPath>$(MSBuildThisFileDirectory)/packages</PackageOutputPath>
     <PublishDir>$(MSBuildThisFileDirectory)/upload/$(ProjectName)</PublishDir>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
