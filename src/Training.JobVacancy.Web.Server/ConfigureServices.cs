@@ -78,8 +78,8 @@ public static class ConfigureServices
           .AddAuthenticationSchemes("openid")
           .RequireAuthenticatedUser())
       .AddDefaultPolicy("admin",
-          policy=>policy
-              .RequireRole("Admin"));
+        policy => policy
+          .RequireRole("Admin"));
   }
 
   public static void AddApiDocumentation(this WebApplicationBuilder builder)
